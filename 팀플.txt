@@ -103,3 +103,30 @@ mysql (위치 정보 저장, 사용자 정보,)
 
 
 서비스 시나리오
+
+===========================================================
+2025/06/06
+post 방식으로 생성할 때 기본 key들
+
+1. 유저
+api/users/signup
+{
+  "email": "lim0714",
+  "name": "ltm",
+  "password": "asdf"
+}
+
+2. 게시판			
+/api/posts?userId=3
+{
+  "imageUrl": "https://i.pravatar.cc/300",
+  "body": "경복궁"
+}
+
+3. 댓글
+/api/comments
+{
+  "postId": 2,
+  "userId": 2,
+  "content": "좋은 글이네요!"
+}
