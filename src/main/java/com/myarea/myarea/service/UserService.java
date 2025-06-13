@@ -13,25 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-@RequiredArgsConstructor
 @Service
+@RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
-
-    public User authenticate(String email, String rawPassword) {
-        Optional<User> optionalUser = userRepository.findByEmail(email);
-        if (optionalUser.isEmpty()) {
-            return null; // 이메일이 없으면 실패
-        }
-
-        User user = optionalUser.get();
-        if (passwordEncoder.matches(rawPassword, user.getPassword())) {
-            return user; // 비밀번호 일치 → 인증 성공
-        }
-        return null; // 비밀번호 불일치 → 인증 실패
-    }
 
     @Transactional
     public UserDto signup(SignupRequestDto requestDto) {
@@ -63,23 +49,23 @@ public class UserService {
         return convertToDto(user);
     }
 
-    public User getLoginUserById(Long userId) {
-        if(userId == null) return null;
-        Optional<User> optionalUser = userRepository.findById(userId);
-        if(optionalUser.isEmpty()) return null;
-        return optionalUser.get();
-    }
-
     private UserDto convertToDto(User user) {
         UserDto dto = new UserDto();
         dto.setId(user.getId());
         dto.setEmail(user.getEmail());
         dto.setName(user.getName());
-        dto.setUserRole(String.valueOf(user.getUserRole()));
+        dto.setUserRole(user.getUserRole());
         dto.setProfileImage(user.getProfileImage());
         dto.setCreatedAt(user.getCreatedAt());
         dto.setEditedAt(user.getEditedAt());
         dto.setLastLoginAt(user.getLastLoginAt());
         return dto;
+    }
+
+    public User getLoginUserById(Long userId) {
+        if(userId == null) return null;
+        Optional<User> optionalUser = userRepository.findById(userId);
+        if(optionalUser.isEmpty()) return null;
+        return optionalUser.get();
     }
 }

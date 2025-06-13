@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Setter
 @ToString
 public class CommentDto {
-    private Long id;
+    private Long commentId;
     private Long postId;
     private Long userId;
     private String content;
@@ -21,7 +21,7 @@ public class CommentDto {
 
     public static CommentDto createCommentDto(Comment comment) {
         return new CommentDto(
-                comment.getId(),
+                comment.getCommentId(),
                 comment.getPost().getPostId(),
                 comment.getUser().getId(),
                 comment.getContent(),

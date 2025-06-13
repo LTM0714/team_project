@@ -12,7 +12,6 @@ import static com.myarea.myarea.entity.UserRole.ADMIN;
 @Entity
 @Table(name = "comment")
 @Getter
-@Setter
 @ToString
 @AllArgsConstructor
 @NoArgsConstructor
@@ -20,14 +19,14 @@ import static com.myarea.myarea.entity.UserRole.ADMIN;
 public class Comment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long commentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id")
+    @JoinColumn(name = "fk_post_id")
     private Post post;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "fk_user_id")
     private User user;
 
     @Column(length = 500)
@@ -43,7 +42,7 @@ public class Comment {
 
     public static Comment createComment(CommentDto dto, Post post, User user) {
         //예외 발생
-        if(dto.getId()!=null)
+        if(dto.getCommentId()!=null)
             throw new IllegalArgumentException("댓글 생성 실패! 댓글의 id가 없어야 합니다.");
         if(dto.getPostId()!=post.getPostId())
             throw new IllegalArgumentException("댓글 생성 실패! 게시글의 id가 잘못됐습니다.");
@@ -51,7 +50,7 @@ public class Comment {
             throw new IllegalArgumentException(("댓글 생성 실패! 로그인 id를 입력해야 합니다"));
         //엔티티 생성 및 반환
         return new Comment(
-                dto.getId(),
+                dto.getCommentId(),
                 post,
                 user,
                 dto.getContent(),
@@ -61,7 +60,7 @@ public class Comment {
 
     public void patch(CommentDto dto, User user, Comment target) {
         //예외 발생
-        if(this.id!=dto.getId())
+        if(this.commentId!=dto.getCommentId())
             throw new IllegalArgumentException("댓글 수정 실패! 잘못된 id가 입력됐습니다.");
         if(user.getId()==null)
             throw new IllegalArgumentException("댓글 수정 실패! 로그인해야 합니다.");

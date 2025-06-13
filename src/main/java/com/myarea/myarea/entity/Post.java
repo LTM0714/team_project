@@ -7,10 +7,13 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
-@Entity
+
 @Table(name = "post")
+@AllArgsConstructor
+@NoArgsConstructor
+@ToString
+@Entity
 @Getter
-@Setter
 public class Post {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,13 +34,13 @@ public class Post {
     @JoinColumn(name = "loc_id")
     private Location location;
 
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "subloc_id")
+//    private SubLocation subLocation;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 
     public void patch(Post post) {
         if (post.imageUrl != null)

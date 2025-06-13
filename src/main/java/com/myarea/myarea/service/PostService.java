@@ -1,96 +1,64 @@
 package com.myarea.myarea.service;
 
 import com.myarea.myarea.dto.PostDto;
-import com.myarea.myarea.entity.Location;
 import com.myarea.myarea.entity.Post;
-import com.myarea.myarea.entity.User;
-import com.myarea.myarea.repository.LocationRepository;
 import com.myarea.myarea.repository.PostRepository;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+
 
 import java.util.List;
-import java.util.stream.Collectors;
 
+@Slf4j
 @Service
-@RequiredArgsConstructor
 public class PostService {
-    private final PostRepository postRepository;
-    private final LocationRepository locationRepository;
+    @Autowired
+    private PostRepository postRepository;
 
-    @Transactional(readOnly = true)
-    public List<PostDto> getAllPosts() {
-        return postRepository.findAll().stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    public List<Post> index() {
+        return postRepository.findAll();
     }
 
-    @Transactional(readOnly = true)
-    public PostDto getPostDtoById(Long postId) {
-        Post post = getPostById(postId);
-        return convertToDto(post);
+    public Post show(Long id) {
+        return postRepository.findById(id).orElse(null);
     }
 
-    @Transactional(readOnly = true)
-    public Post getPostById(Long postId) {
-        return postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
-    }
 
-    @Transactional
-    public PostDto createPost(PostDto postDto, User user) {
-        Post post = new Post();
-        post.setImageUrl(postDto.getImageUrl());
-        post.setBody(postDto.getBody());
-        post.setUser(user);
-        
-        if (postDto.getLocId() != null) {
-            Location location = locationRepository.findById(postDto.getLocId())
-                    .orElseThrow(() -> new RuntimeException("Location not found with id: " + postDto.getLocId()));
-            post.setLocation(location);
+    public Post create(PostDto dto) {
+        Post post = dto.toEntity();
+        if(post.getPostId() != null){
+            return null;
         }
-        
-        Post savedPost = postRepository.save(post);
-        return convertToDto(savedPost);
+        return postRepository.save(post);
     }
 
-    @Transactional
-    public PostDto updatePost(Long postId, PostDto postDto) {
-        Post post = getPostById(postId);
-        
-        if (postDto.getImageUrl() != null) {
-            post.setImageUrl(postDto.getImageUrl());
+    public Post update(Long id, PostDto dto) {
+        // 1. DTO -> 엔티티 변환하기
+        Post post=dto.toEntity();
+        log.info("id: {}, article: {}", id, post.toString());
+        // 2. 타깃 조회하기
+        Post target=postRepository.findById(id).orElse(null);
+        // 3. 잘못된 요청 처리하기
+        if(target == null || id != post.getPostId()){
+            log.info("잘못된 요청! id: {}, article: {}", id, post.toString());
+            return null;
         }
-        if (postDto.getBody() != null) {
-            post.setBody(postDto.getBody());
-        }
-        if (postDto.getLocId() != null) {
-            Location location = locationRepository.findById(postDto.getLocId())
-                    .orElseThrow(() -> new RuntimeException("Location not found with id: " + postDto.getLocId()));
-            post.setLocation(location);
-        }
-        
-        Post updatedPost = postRepository.save(post);
-        return convertToDto(updatedPost);
+        // 4. 업데이트하기
+        target.patch(post);
+        Post updated=postRepository.save(target);
+        return updated;
     }
 
-    @Transactional
-    public void deletePost(Long postId) {
-        Post post = getPostById(postId);
-        postRepository.delete(post);
-    }
-
-    private PostDto convertToDto(Post post) {
-        PostDto dto = new PostDto();
-        dto.setPostId(post.getPostId());
-        dto.setUserId(post.getUser().getId());
-        dto.setImageUrl(post.getImageUrl());
-        dto.setBody(post.getBody());
-        if (post.getLocation() != null) {
-            dto.setLocId(post.getLocation().getLocId());
+    public Post delete(Long id) {
+        // 1. 대상 찾기
+        Post target = postRepository.findById(id).orElse(null);
+        // 2. 잘못된 요청 처리하기
+        if(target == null){
+            return null;
         }
-        dto.setCreatedAt(post.getCreatedAt());
-        return dto;
+        // 3. 대상 삭제하기
+        postRepository.delete(target);
+        return target;
     }
 } 
