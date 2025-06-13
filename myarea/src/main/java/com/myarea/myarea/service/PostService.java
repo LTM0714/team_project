@@ -112,7 +112,7 @@ public class PostService {
         responseDto.setCreatedAt(post.getCreatedAt());
 
         PostResponseDto.LocationDto locationDto = new PostResponseDto.LocationDto();
-        locationDto.setId(post.getLocation().getId());
+        locationDto.setId(post.getLocation().getLoc_id());
         locationDto.setLatitude(post.getLocation().getLatitude());
         locationDto.setLongitude(post.getLocation().getLongitude());
         locationDto.setLocationName(post.getLocation().getLocationName());

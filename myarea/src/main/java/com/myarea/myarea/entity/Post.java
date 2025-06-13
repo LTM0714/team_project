@@ -8,7 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "posts")
+@Table(name = "post")
 @Getter
 @Setter
 public class Post {
@@ -27,7 +27,7 @@ public class Post {
     private String body;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "location_id")
+    @JoinColumn(name = "loc_id")
     private Location location;
 
     @CreationTimestamp

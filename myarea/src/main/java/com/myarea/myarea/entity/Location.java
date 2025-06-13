@@ -11,7 +11,7 @@ import lombok.Setter;
 public class Location {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long loc_id;
 
     @Column(name = "latitude")
     private Double latitude;
@@ -19,6 +19,6 @@ public class Location {
     @Column(name = "longitude")
     private Double longitude;
 
-    @Column(name = "location_name")
+    @Column(name = "loc_name")
     private String locationName;
 } 
