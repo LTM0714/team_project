@@ -16,17 +16,20 @@ public class PostController {
     @Autowired
     private PostService postService;
 
-    @GetMapping("/api/articles")
+    // 전체 게시물 조회
+    @GetMapping
     public List<Post> index(){
         return postService.index();
     }
 
-    @GetMapping("/api/articles/{id}")
+    // postId를 이용한 게시물 조회
+    @GetMapping("{id}")
     public Post show(@PathVariable Long id){
         return postService.show(id);
     }
 
-    @PostMapping("/api/articles")
+    // 게시물 생성
+    @PostMapping
     public ResponseEntity<Post> create(@RequestBody PostDto dto){
         Post created = postService.create(dto);
         return (created != null) ?
@@ -34,7 +37,8 @@ public class PostController {
                 ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 
-    @PatchMapping("/api/articles/{id}")
+    // 게시물 수정
+    @PatchMapping("{id}")
     public ResponseEntity<Post> update(@PathVariable Long id, @RequestBody PostDto dto){
         Post updated = postService.update(id, dto);
         return (updated != null) ?
@@ -42,7 +46,8 @@ public class PostController {
                 ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 
-    @DeleteMapping("/api/articles/{id}")
+    // 게시물 삭제
+    @DeleteMapping("{id}")
     public ResponseEntity<Post> delete(@PathVariable Long id){
         Post deleted = postService.delete(id);
         return (deleted != null) ?
