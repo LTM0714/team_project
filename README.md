@@ -1,3 +1,3 @@
-# team_project
+# 마애리아 Ma-area
 
 사진 속 동네가 궁금한 사람들을 위한 SNS 플랫폼
