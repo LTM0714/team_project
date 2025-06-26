@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="myarea-backend-database.cdqoag408rbh.ap-northeast-2.rds.amazonaws.com" uuid="60802c87-3895-496a-a58e-e30cbab01e14">
+    <data-source source="LOCAL" name="@myarea-backend-database.cdqoag408rbh.ap-northeast-2.rds.amazonaws.com" uuid="557a87b5-5e98-4f06-a86a-c734ab36c706">
       <driver-ref>mysql_aurora.aws_wrapper</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>software.amazon.jdbc.Driver</jdbc-driver>
