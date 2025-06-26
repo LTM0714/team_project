@@ -2,62 +2,71 @@ package com.myarea.myarea.service;
 
 import com.myarea.myarea.dto.LoginRequestDto;
 import com.myarea.myarea.dto.SignupRequestDto;
-import com.myarea.myarea.dto.UserDto;
 import com.myarea.myarea.entity.User;
+import com.myarea.myarea.entity.UserRole;
 import com.myarea.myarea.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class UserService {
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-    @Transactional
-    public UserDto signup(SignupRequestDto requestDto) {
-        if (userRepository.existsByEmail(requestDto.getEmail())) {
-            throw new RuntimeException("이미 존재하는 이메일입니다.");
-        }
+    // 로그인 email 중복 검사 메서드
+    public boolean checkEmailDuplicate(String email){
+        return userRepository.existsByEmail(email);
+    }
 
+    // 회원가입 메서드
+    public void signup(SignupRequestDto signupRequestDto){
         User user = new User();
-        user.setEmail(requestDto.getEmail());
-        user.setPassword(passwordEncoder.encode(requestDto.getPassword()));
-        user.setName(requestDto.getName());
-        user.setProfileImage(requestDto.getProfileImage());
+        user.setEmail(signupRequestDto.getEmail());
+        user.setPassword(passwordEncoder.encode(signupRequestDto.getPassword()));
+        user.setName(signupRequestDto.getName());
+        user.setProfileImage(signupRequestDto.getProfileImage());
+        user.setRole(UserRole.USER);
         user.setLastLoginAt(LocalDateTime.now());
 
-        User savedUser = userRepository.save(user);
-        return convertToDto(savedUser);
+        userRepository.save(user);
     }
 
-    @Transactional
-    public UserDto login(LoginRequestDto requestDto) {
-        User user = userRepository.findByEmail(requestDto.getEmail())
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 이메일입니다."));
+    // 로그인 메서드
+    public User login(LoginRequestDto loginRequestDto){
+        User findUser = userRepository.findByEmail(loginRequestDto.getEmail());
 
-        if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
-            throw new RuntimeException("비밀번호가 일치하지 않습니다.");
+        if (findUser == null) {
+            return null;
         }
 
-        user.setLastLoginAt(LocalDateTime.now());
-        return convertToDto(user);
+        // 비밀번호 암호화 비교
+        if (!passwordEncoder.matches(loginRequestDto.getPassword(), findUser.getPassword())) {
+            return null;
+        }
+
+        return findUser;
     }
 
-    private UserDto convertToDto(User user) {
-        UserDto dto = new UserDto();
-        dto.setId(user.getId());
-        dto.setEmail(user.getEmail());
-        dto.setName(user.getName());
-        dto.setUserRole(user.getUserRole());
-        dto.setProfileImage(user.getProfileImage());
-        dto.setCreatedAt(user.getCreatedAt());
-        dto.setEditedAt(user.getEditedAt());
-        dto.setLastLoginAt(user.getLastLoginAt());
-        return dto;
+    // 이메일로 찾기
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    // 로그인한 User 반환 메서드
+    public User getLoginUserById(Long id){
+        if (id == null) return null;
+
+        Optional<User> findUser = userRepository.findById(id);
+        return findUser.orElse(null);
     }
 }

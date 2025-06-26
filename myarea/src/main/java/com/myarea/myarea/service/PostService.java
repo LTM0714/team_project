@@ -1,123 +1,69 @@
 package com.myarea.myarea.service;
 
-import com.myarea.myarea.dto.PostRequestDto;
-import com.myarea.myarea.dto.PostResponseDto;
-import com.myarea.myarea.entity.Location;
+import com.myarea.myarea.dto.PostDto;
 import com.myarea.myarea.entity.Post;
-import com.myarea.myarea.entity.User;
 import com.myarea.myarea.repository.LocationRepository;
 import com.myarea.myarea.repository.PostRepository;
 import com.myarea.myarea.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PostService {
-    private final PostRepository postRepository;
-    private final UserRepository userRepository;
-    private final LocationRepository locationRepository;
+    @Autowired
+    private PostRepository postRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private LocationRepository locationRepository;
 
-    @Transactional
-    public PostResponseDto createPost(Long userId, PostRequestDto requestDto) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        Location location;
-        if (requestDto.getLocationId() != null) {
-            location = locationRepository.findById(requestDto.getLocationId())
-                    .orElseThrow(() -> new EntityNotFoundException("Location not found"));
-        } else {
-            location = new Location();
-            location.setLatitude(requestDto.getLatitude());
-            location.setLongitude(requestDto.getLongitude());
-            location.setLocationName(requestDto.getLocationName());
-            location = locationRepository.save(location);
+    public List<Post> index() { return postRepository.findAll(); }
+
+    public Post show(Long post_id) { return postRepository.findById(post_id).orElse(null); }
+
+    public Post create(PostDto dto) {
+        Post post = dto.toEntity();
+        if(post.getPostId() != null){
+            return null;
         }
-
-        Post post = new Post();
-        post.setUser(user);
-        post.setImageUrl(requestDto.getImageUrl());
-        post.setBody(requestDto.getBody());
-        post.setLocation(location);
-
-        Post savedPost = postRepository.save(post);
-        return convertToResponseDto(savedPost);
+        return postRepository.save(post);
     }
 
-    public Page<PostResponseDto> getPosts(Pageable pageable) {
-        return postRepository.findAll(pageable)
-                .map(this::convertToResponseDto);
-    }
-
-    public Page<PostResponseDto> getPostsByUser(Long userId, Pageable pageable) {
-        return postRepository.findByUserId(userId, pageable)
-                .map(this::convertToResponseDto);
-    }
-
-    public Page<PostResponseDto> getPostsByLocation(Long locationId, Pageable pageable) {
-        return postRepository.findByLocationId(locationId, pageable)
-                .map(this::convertToResponseDto);
-    }
-
-    public Page<PostResponseDto> searchPostsByLocationName(String keyword, Pageable pageable) {
-        return postRepository.findByLocationNameContaining(keyword, pageable)
-                .map(this::convertToResponseDto);
-    }
-
-    @Transactional
-    public PostResponseDto updatePost(Long postId, Long userId, PostRequestDto requestDto) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("Post not found"));
-
-        if (!post.getUser().getId().equals(userId)) {
-            throw new IllegalStateException("Only the post author can update the post");
+    public Post update(Long post_id, PostDto dto) {
+        // 1. DTO -> 엔티티 변환하기
+        Post post=dto.toEntity();
+        log.info("id: {}, post: {}", post_id, post.toString());
+        // 2. 타깃 조회하기
+        Post target=postRepository.findById(post_id).orElse(null);
+        // 3. 잘못된 요청 처리하기
+        if(target == null || post_id != post.getPostId()){
+            log.info("잘못된 요청! id: {}, post: {}", post_id, post.toString());
+            return null;
         }
-
-        post.setImageUrl(requestDto.getImageUrl());
-        post.setBody(requestDto.getBody());
-
-        if (requestDto.getLocationId() != null) {
-            Location location = locationRepository.findById(requestDto.getLocationId())
-                    .orElseThrow(() -> new EntityNotFoundException("Location not found"));
-            post.setLocation(location);
-        }
-
-        return convertToResponseDto(post);
+        // 4. 업데이트하기
+        target.patch(post);
+        Post updated=postRepository.save(target);
+        return updated;
     }
 
-    @Transactional
-    public void deletePost(Long postId, Long userId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("Post not found"));
-
-        if (!post.getUser().getId().equals(userId)) {
-            throw new IllegalStateException("Only the post author can delete the post");
+    public Post delete(Long post_id) {
+        // 1. 대상 찾기
+        Post target = postRepository.findById(post_id).orElse(null);
+        // 2. 잘못된 요청 처리하기
+        if(target == null){
+            return null;
         }
-
-        postRepository.delete(post);
-    }
-
-    private PostResponseDto convertToResponseDto(Post post) {
-        PostResponseDto responseDto = new PostResponseDto();
-        responseDto.setPostId(post.getPostId());
-        responseDto.setUserId(post.getUser().getId());
-        responseDto.setImageUrl(post.getImageUrl());
-        responseDto.setBody(post.getBody());
-        responseDto.setCreatedAt(post.getCreatedAt());
-
-        PostResponseDto.LocationDto locationDto = new PostResponseDto.LocationDto();
-        locationDto.setId(post.getLocation().getLoc_id());
-        locationDto.setLatitude(post.getLocation().getLatitude());
-        locationDto.setLongitude(post.getLocation().getLongitude());
-        locationDto.setLocationName(post.getLocation().getLocationName());
-        responseDto.setLocation(locationDto);
-
-        return responseDto;
+        // 3. 대상 삭제하기
+        postRepository.delete(target);
+        return target;
     }
 } 
