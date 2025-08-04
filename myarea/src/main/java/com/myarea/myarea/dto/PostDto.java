@@ -26,10 +26,7 @@ public class PostDto {
     // 데이터를 잘 받았는지 확인할 toString() 메서드 추가 --> @ToString
 
     //폼 데이터를 받은 DTO객체를 엔티티로 반환
-    public Post toEntity() {
-        User user = new User();
-        user.setId(userId);
-
+    public Post toEntity(User user) {
         Location location = new Location();
         location.setLocId(locId);
 

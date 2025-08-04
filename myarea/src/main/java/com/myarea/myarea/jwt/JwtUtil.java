@@ -47,6 +47,11 @@ public class JwtUtil {
                 .parseClaimsJws(token).getBody().getSubject();
     }
 
+    // role 값을 파싱하여 반환
+    public String getUserRoleFromToken(String token){
+        return (String) getAllClaims(token).get("role");
+    }
+
     // 토큰 파싱 가능한지 만료되지 않았는지 확인
     public boolean validateToken(String token) {
         try {

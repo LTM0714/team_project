@@ -2,6 +2,7 @@ package com.myarea.myarea.service;
 
 import com.myarea.myarea.dto.PostDto;
 import com.myarea.myarea.entity.Post;
+import com.myarea.myarea.entity.User;
 import com.myarea.myarea.repository.LocationRepository;
 import com.myarea.myarea.repository.PostRepository;
 import com.myarea.myarea.repository.UserRepository;
@@ -16,7 +17,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class PostService {
     @Autowired
     private PostRepository postRepository;
@@ -30,14 +31,15 @@ public class PostService {
 
     public Post show(Long post_id) { return postRepository.findById(post_id).orElse(null); }
 
-    public Post create(PostDto dto) {
-        Post post = dto.toEntity();
+    public Post create(PostDto dto, User user) {
+        Post post = dto.toEntity(user);
+
         if(post.getPostId() != null){
             return null;
         }
         return postRepository.save(post);
     }
-
+/*
     public Post update(Long post_id, PostDto dto) {
         // 1. DTO -> 엔티티 변환하기
         Post post=dto.toEntity();
@@ -66,4 +68,6 @@ public class PostService {
         postRepository.delete(target);
         return target;
     }
+
+ */
 } 
