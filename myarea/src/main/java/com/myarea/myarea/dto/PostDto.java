@@ -19,7 +19,9 @@ public class PostDto {
     private Long userId;
     private String imageUrl;
     private String body;
-    private Long locId;
+    private Double latitude;
+    private Double longitude;
+    private String address;
     // private Long subLocId;
     private LocalDateTime createdAt;
 
@@ -28,23 +30,22 @@ public class PostDto {
     // 데이터를 잘 받았는지 확인할 toString() 메서드 추가 --> @ToString
 
     //폼 데이터를 받은 DTO객체를 엔티티로 반환
-    public Post toEntity(User user) {
-        Location location = null;
-        if (locId != null) {
-            location = new Location();
-            location.setLocId(locId);
-        }
+    public Post toEntity(User user, Location location) {
 
         return new Post(postId, user, imageUrl, body, location, createdAt);
     }
 
     public static PostDto fromEntity(Post post) {
+        Location location = post.getLocation();
+
         return new PostDto(
                 post.getPostId(),
                 post.getUser().getId(),
                 post.getImageUrl(),
                 post.getBody(),
-                post.getLocation() != null ? post.getLocation().getLocId() : null,
+                location != null ? location.getLatitude() : null,
+                location != null ? location.getLongitude() : null,
+                location != null ? location.getAddress() : null,
                 post.getCreatedAt()
         );
     }

@@ -20,5 +20,5 @@ public class Location {
     private Double longitude;
 
     @Column(name = "loc_name")
-    private String locationName;
+    private String address;
 } 

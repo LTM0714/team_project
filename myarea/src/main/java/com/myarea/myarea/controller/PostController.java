@@ -73,7 +73,7 @@ public class PostController {
                     .body("Error creating post: " + e.getMessage());
         }
     }
-
+/*
     // 게시물 수정
     @PatchMapping("{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody PostDto dto,
@@ -114,7 +114,7 @@ public class PostController {
                     .body("Error updating post: " + e.getMessage());
         }
     }    
-
+*/
     // 게시물 삭제
     @DeleteMapping("{id}")
     public ResponseEntity<?> delete(@PathVariable Long id,
