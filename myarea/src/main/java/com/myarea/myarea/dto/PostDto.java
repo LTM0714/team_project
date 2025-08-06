@@ -4,6 +4,7 @@ import com.myarea.myarea.entity.Location;
 import com.myarea.myarea.entity.Post;
 import com.myarea.myarea.entity.User;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @ToString
 @Setter
+@Getter
 public class PostDto {
     private Long postId;
     private Long userId;
@@ -27,9 +29,23 @@ public class PostDto {
 
     //폼 데이터를 받은 DTO객체를 엔티티로 반환
     public Post toEntity(User user) {
-        Location location = new Location();
-        location.setLocId(locId);
+        Location location = null;
+        if (locId != null) {
+            location = new Location();
+            location.setLocId(locId);
+        }
 
         return new Post(postId, user, imageUrl, body, location, createdAt);
+    }
+
+    public static PostDto fromEntity(Post post) {
+        return new PostDto(
+                post.getPostId(),
+                post.getUser().getId(),
+                post.getImageUrl(),
+                post.getBody(),
+                post.getLocation() != null ? post.getLocation().getLocId() : null,
+                post.getCreatedAt()
+        );
     }
 }

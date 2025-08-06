@@ -6,7 +6,6 @@ import com.myarea.myarea.entity.User;
 import com.myarea.myarea.jwt.JwtUtil;
 import com.myarea.myarea.repository.UserRepository;
 import com.myarea.myarea.service.PostService;
-import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,7 +40,7 @@ public class PostController {
     public ResponseEntity<?> create(@RequestBody PostDto dto,
                                     @RequestHeader(value = "Authorization", required = false) String authHeader){
         try{
-            // 1. 토큰 존재 및 형식 확인
+            // 1. Authorization 헤더가 없거나 Bearer 형식이 아닌 경우
             if(authHeader == null || !authHeader.startsWith("Bearer ")){
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Access token missing or invalid format");
             }
@@ -74,24 +73,84 @@ public class PostController {
                     .body("Error creating post: " + e.getMessage());
         }
     }
-/*
+
     // 게시물 수정
     @PatchMapping("{id}")
-    public ResponseEntity<Post> update(@PathVariable Long id, @RequestBody PostDto dto){
-        Post updated = postService.update(id, dto);
-        return (updated != null) ?
-                ResponseEntity.status(HttpStatus.OK).body(updated) :
-                ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-    }
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody PostDto dto,
+                                       @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        try {
+            // 1. 토큰 존재 및 형식 확인
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Access token missing or invalid format");
+            }
+
+            // 2. 토큰 추출
+            String token = authHeader.substring("Bearer ".length());
+
+            // 3. 토큰 유효성 검사
+            if (!jwtUtil.validateToken(token)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired token");
+            }
+
+            // 4. 사용자 정보 추출
+            String email = jwtUtil.getEmailFromToken(token);
+            User user = userRepository.findByEmail(email);
+            if(user == null){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
+            }
+
+            // 5. 게시물 수정
+            PostDto updated = postService.update(id, dto, user);
+
+            // 6. 작성자 불일치 또는 실패 시 권한 없음 응답
+            if (updated == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not the author of this post.");
+            }
+
+            return ResponseEntity.ok(updated);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error updating post: " + e.getMessage());
+        }
+    }    
 
     // 게시물 삭제
     @DeleteMapping("{id}")
-    public ResponseEntity<Post> delete(@PathVariable Long id){
-        Post deleted = postService.delete(id);
-        return (deleted != null) ?
-                ResponseEntity.status(HttpStatus.NO_CONTENT).build() :
-                ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    public ResponseEntity<?> delete(@PathVariable Long id,
+                                    @RequestHeader(value = "Authorization", required = false) String authHeader){
+        try {
+            // 1. 토큰 존재 및 형식 확인
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Access token missing or invalid format");
+            }
+
+            // 2. 토큰 추출
+            String token = authHeader.substring("Bearer ".length());
+
+            // 3. 토큰 유효성 검사
+            if (!jwtUtil.validateToken(token)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired token");
+            }
+
+            // 4. 사용자 정보 추출
+            String email = jwtUtil.getEmailFromToken(token);
+            User user = userRepository.findByEmail(email);
+
+            // 5. 게시물 삭제
+            boolean deleted = postService.delete(id, user);
+
+            // 6. 작성자 불일치 또는 실패 시 권한 없음 응답
+            if (!deleted) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not the author of this post.");
+            }
+
+            return ResponseEntity.ok("Post deleted successfully.");
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error deleting post: " + e.getMessage());
+        }
     }
-    
- */
+
 } 

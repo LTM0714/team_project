@@ -44,10 +44,6 @@ public class Comment {
         //예외 발생
         if(dto.getCommentId()!=null)
             throw new IllegalArgumentException("댓글 생성 실패! 댓글의 id가 없어야 합니다.");
-        if(dto.getPostId()!=post.getPostId())
-            throw new IllegalArgumentException("댓글 생성 실패! 게시글의 id가 잘못됐습니다.");
-        if(dto.getUserId()==null)
-            throw new IllegalArgumentException(("댓글 생성 실패! 로그인 id를 입력해야 합니다"));
         //엔티티 생성 및 반환
         return new Comment(
                 dto.getCommentId(),
@@ -60,8 +56,6 @@ public class Comment {
 
     public void patch(CommentDto dto, User user, Comment target) {
         //예외 발생
-        if(this.commentId!=dto.getCommentId())
-            throw new IllegalArgumentException("댓글 수정 실패! 잘못된 id가 입력됐습니다.");
         if(user.getId()==null)
             throw new IllegalArgumentException("댓글 수정 실패! 로그인해야 합니다.");
         if(target.getUser().getId()!=user.getId() && user.getRole()!= ADMIN)
