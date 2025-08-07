@@ -3,9 +3,11 @@ package com.myarea.myarea.service;
 import com.myarea.myarea.dto.PostDto;
 import com.myarea.myarea.entity.Location;
 import com.myarea.myarea.entity.Post;
+import com.myarea.myarea.entity.SubSubLocation;
 import com.myarea.myarea.entity.User;
 import com.myarea.myarea.repository.LocationRepository;
 import com.myarea.myarea.repository.PostRepository;
+import com.myarea.myarea.repository.SubSubLocationRepository;
 import com.myarea.myarea.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,8 @@ public class PostService {
     private UserRepository userRepository;
     @Autowired
     private LocationRepository locationRepository;
+    @Autowired
+    private SubSubLocationService subSubLocationService;
 
 
     public List<Post> index() { return postRepository.findAll(); }
@@ -35,8 +39,16 @@ public class PostService {
     public Post create(PostDto dto, User user) {
         Location location = null;
 
-        // 1. GPS 정보(위도/경도/주소)가 모두 있는 경우 Location 생성 및 저장
-        if (dto.getLatitude() != null && dto.getLongitude() != null && dto.getAddress() != null) {
+        boolean hasManualLocation = dto.getLatitude() != null && dto.getLongitude() != null && dto.getAddress() != null;
+        boolean hasSelectedLocation = dto.getSubsubId() != null;
+
+        // GPS + subsubId 동시 입력한 경우: 예외 처리
+        if (hasManualLocation && hasSelectedLocation) {
+            throw new IllegalArgumentException("사진 업로드 시 사진 메타데이터가 있을 경우와 지역 선택 중 하나만 선택해 주세요.");
+        }
+
+        // 1. GPS 정보(위도/경도/주소)가 모두 있는 경우
+        if (hasManualLocation) {
             location = new Location();
             location.setLatitude(dto.getLatitude());
             location.setLongitude(dto.getLongitude());
@@ -45,11 +57,17 @@ public class PostService {
             location = locationRepository.save(location); // Location 저장
         }
 
-        /* 2. 사용자가 선택한 SubLocation이 있을 경우 로드
-        if (dto.getSubLocId() != null) {
-        subLocation = subLocationRepository.findById(dto.getSubLocId())
-                           .orElseThrow(() -> new IllegalArgumentException("잘못된 SubLocation ID"));
-        }    */
+        // 2. 사용자가 선택한 subsubId로 자동 설정
+        else if (hasSelectedLocation) {
+            SubSubLocation subSubLocation = subSubLocationService.findById(dto.getSubsubId());
+
+            location = new Location();
+            location.setLatitude(subSubLocation.getLatitude());
+            location.setLongitude(subSubLocation.getLongitude());
+            location.setAddress(subSubLocation.getAddress());
+
+            location = locationRepository.save(location);
+        }
 
         Post post = dto.toEntity(user, location);
 

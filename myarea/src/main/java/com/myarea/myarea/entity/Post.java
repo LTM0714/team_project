@@ -30,7 +30,7 @@ public class Post {
     @Column(name = "body", columnDefinition = "TEXT")
     private String body;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(cascade = CascadeType.REMOVE, orphanRemoval = true)
     @JoinColumn(name = "loc_id")
     private Location location;
 
