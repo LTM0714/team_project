@@ -25,8 +25,6 @@ public class PostService {
     @Autowired
     private PostRepository postRepository;
     @Autowired
-    private UserRepository userRepository;
-    @Autowired
     private LocationRepository locationRepository;
     @Autowired
     private SubSubLocationService subSubLocationService;
@@ -42,7 +40,7 @@ public class PostService {
         boolean hasManualLocation = dto.getLatitude() != null && dto.getLongitude() != null && dto.getAddress() != null;
         boolean hasSelectedLocation = dto.getSubsubId() != null;
 
-        // GPS + subsubId 동시 입력한 경우: 예외 처리
+        // GPS + subsubId 동시 입력한 경우 → 예외 처리
         if (hasManualLocation && hasSelectedLocation) {
             throw new IllegalArgumentException("사진 업로드 시 사진 메타데이터가 있을 경우와 지역 선택 중 하나만 선택해 주세요.");
         }
@@ -73,8 +71,8 @@ public class PostService {
 
         return postRepository.save(post);
     }
-/*
-    public PostDto update(Long post_id, PostDto dto, User user) {
+
+    public Post update(Long post_id, PostDto dto, User user) {
         Post target = postRepository.findById(post_id).orElse(null);
 
         if (target == null) return null;
@@ -85,12 +83,46 @@ public class PostService {
             return null; // 권한 없음
         }
 
+        Location location = target.getLocation();
+
+        // GPS + subsubId 동시 입력한 경우 → 예외 처리
+        if ((dto.getLatitude() != null || dto.getLongitude() != null || dto.getAddress() != null)
+                && dto.getSubsubId() != null) {
+            throw new IllegalArgumentException("GPS 메타데이터와 직접 선택한 위치는 동시에 입력할 수 없습니다.");
+        }
+
+        // 1. GPS 정보로 수정
+        if (dto.getLatitude() != null && dto.getLongitude() != null && dto.getAddress() != null) {
+            if (location == null) {
+                location = new Location();
+            }
+            location.setLatitude(dto.getLatitude());
+            location.setLongitude(dto.getLongitude());
+            location.setAddress(dto.getAddress());
+
+            location = locationRepository.save(location);
+        }
+
+        // 2. subsubId로 수정
+        else if (dto.getSubsubId() != null) {
+            SubSubLocation subSubLocation = subSubLocationService.findById(dto.getSubsubId());
+
+            if (location == null) {
+                location = new Location();
+            }
+            location.setLatitude(subSubLocation.getLatitude());
+            location.setLongitude(subSubLocation.getLongitude());
+            location.setAddress(subSubLocation.getAddress());
+
+            location = locationRepository.save(location);
+        }
+
         // patch
-        target.patch(dto.toEntity(user));
-        Post updated = postRepository.save(target);
-        return PostDto.fromEntity(updated);
+        target.patch(dto.toEntity(user, location));
+
+        return postRepository.save(target);
     }
-*/
+
     public boolean delete(Long post_id, User user) {
         Post target = postRepository.findById(post_id).orElse(null);
 

@@ -24,6 +24,7 @@ public class PostDto {
     private String address;
     private Long subsubId;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     // 전송 받은 이미지와 내용을 필드에 저장하는 생성자 추가 --> @AllArgsConstructor
 
@@ -32,6 +33,6 @@ public class PostDto {
     //폼 데이터를 받은 DTO객체를 엔티티로 반환
     public Post toEntity(User user, Location location) {
 
-        return new Post(postId, user, imageUrl, body, location, createdAt);
+        return new Post(postId, user, imageUrl, body, location, createdAt, updatedAt);
     }
 }
