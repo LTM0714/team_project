@@ -1,21 +1,22 @@
 package com.myarea.myarea.dto;
 
-import com.myarea.myarea.entity.Sublocation;
-import lombok.*;
+import com.myarea.myarea.entity.Like_post;
+import com.myarea.myarea.entity.SubLocation;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 
 @AllArgsConstructor
-@NoArgsConstructor
 @Getter
 @Setter
-@ToString
-public class SublocationDto {
-    private Long subloc_id;
+public class SubLocationDto {
+    private Long sublocId;
     private String name;
 
-    public static SublocationDto toDto(Sublocation sublocation) {
-        return new SublocationDto(
-                sublocation.getSubloc_id(),
-                sublocation.getName()
+    public static SubLocationDto toDto(SubLocation subLocation) {
+        return new SubLocationDto(
+                subLocation.getSublocId(),
+                subLocation.getName()
         );
     }
 }

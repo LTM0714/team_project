@@ -20,7 +20,7 @@ public class Like_locationDto {
         return new Like_locationDto(
                 like_location.getId(),
                 like_location.getUser_id().getId(),
-                like_location.getSubloc_id().getSubloc_id(),
+                like_location.getSubloc_id().getSublocId(),
                 like_location.getLiked_at()
         );
     }

@@ -1,7 +1,7 @@
 package com.myarea.myarea.controller;
 
 import com.myarea.myarea.dto.Like_locationDto;
-import com.myarea.myarea.dto.SublocationDto;
+import com.myarea.myarea.dto.SubLocationDto;
 import com.myarea.myarea.jwt.JwtUtil;
 import com.myarea.myarea.service.Like_locationService;
 import com.myarea.myarea.service.UserService;
@@ -24,7 +24,7 @@ public class Like_locationController {
     private UserService userService;
 
     @GetMapping
-    public List<SublocationDto> getLike_location(@RequestHeader(value = "Authorization", required = false) String token) {
+    public List<SubLocationDto> getLike_location(@RequestHeader(value = "Authorization", required = false) String token) {
         Long userId = extractUserId(token);
         return like_locationService.getLike_location(userId);
     }

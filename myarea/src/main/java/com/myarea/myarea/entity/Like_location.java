@@ -28,13 +28,13 @@ public class Like_location {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subloc_id", nullable = false)
-    private Sublocation subloc_id;
+    private SubLocation subloc_id;
 
     @CreationTimestamp
     @Column(name = "liked_at", updatable = false)
     private LocalDateTime liked_at;
 
-    public static Like_location addLike_location(Like_locationDto dto, User user_id, Sublocation subloc_id) {
+    public static Like_location addLike_location(Like_locationDto dto, User user_id, SubLocation subloc_id) {
         return new Like_location(
                 dto.getId(),
                 user_id,

@@ -35,4 +35,19 @@ public class PostDto {
 
         return new Post(postId, user, imageUrl, body, location, createdAt, updatedAt);
     }
+
+    public static PostDto fromEntity(Post post) {
+        return new PostDto(
+                post.getPostId(),
+                post.getUser().getId(),
+                post.getImageUrl(),
+                post.getBody(),
+                post.getLocation().getLatitude(),
+                post.getLocation().getLongitude(),
+                post.getLocation().getAddress(),
+                null,
+                post.getCreatedAt(),
+                post.getUpdatedAt()
+        );
+    }
 }

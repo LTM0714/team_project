@@ -1,7 +1,7 @@
 package com.myarea.myarea.service;
 
-import com.myarea.myarea.entity.Sublocation;
-import com.myarea.myarea.repository.SublocationRepository;
+import com.myarea.myarea.entity.SubLocation;
+import com.myarea.myarea.repository.SubLocationRepository;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,7 @@ import java.util.List;
 @Transactional
 public class SublocationService {
     @Autowired
-    private SublocationRepository sublocationRepository;
+    private SubLocationRepository sublocationRepository;
 
-    public List<Sublocation> getAll() { return sublocationRepository.findAll(); }
+    public List<SubLocation> getAll() { return sublocationRepository.findAll(); }
 }
