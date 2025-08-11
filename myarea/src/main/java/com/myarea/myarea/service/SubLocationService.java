@@ -16,7 +16,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class SublocationService {
+public class SubLocationService {
     @Autowired
     private SubLocationRepository sublocationRepository;
 
