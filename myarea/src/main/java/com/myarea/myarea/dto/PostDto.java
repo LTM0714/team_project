@@ -22,8 +22,9 @@ public class PostDto {
     private Double latitude;
     private Double longitude;
     private String address;
-    // private Long subLocId;
+    private Long subsubId;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     // 전송 받은 이미지와 내용을 필드에 저장하는 생성자 추가 --> @AllArgsConstructor
 
@@ -32,21 +33,6 @@ public class PostDto {
     //폼 데이터를 받은 DTO객체를 엔티티로 반환
     public Post toEntity(User user, Location location) {
 
-        return new Post(postId, user, imageUrl, body, location, createdAt);
-    }
-
-    public static PostDto fromEntity(Post post) {
-        Location location = post.getLocation();
-
-        return new PostDto(
-                post.getPostId(),
-                post.getUser().getId(),
-                post.getImageUrl(),
-                post.getBody(),
-                location != null ? location.getLatitude() : null,
-                location != null ? location.getLongitude() : null,
-                location != null ? location.getAddress() : null,
-                post.getCreatedAt()
-        );
+        return new Post(postId, user, imageUrl, body, location, createdAt, updatedAt);
     }
 }

@@ -71,7 +71,7 @@ public class PostController {
                     .body("Error creating post: " + e.getMessage());
         }
     }
-/*
+
     // 게시물 수정
     @PatchMapping("{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody PostDto dto,
@@ -92,15 +92,17 @@ public class PostController {
 
             // 4. 사용자 정보 추출
             String email = jwtUtil.getEmailFromToken(token);
+
+            // 5. 사용자 조회
             User user = userRepository.findByEmail(email);
             if(user == null){
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
             }
 
-            // 5. 게시물 수정
-            PostDto updated = postService.update(id, dto, user);
+            // 6. 게시물 수정
+            Post updated = postService.update(id, dto, user);
 
-            // 6. 작성자 불일치 또는 실패 시 권한 없음 응답
+            // 7. 작성자 불일치 또는 실패 시 권한 없음 응답
             if (updated == null) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not the author of this post.");
             }
@@ -112,7 +114,7 @@ public class PostController {
                     .body("Error updating post: " + e.getMessage());
         }
     }    
-*/
+
     // 게시물 삭제
     @DeleteMapping("{id}")
     public ResponseEntity<?> delete(@PathVariable Long id,
