@@ -1,11 +1,9 @@
 package com.myarea.myarea.controller;
 
-import com.myarea.myarea.dto.SubLocationDto;
 import com.myarea.myarea.dto.SubSubLocationDto;
 import com.myarea.myarea.entity.SubLocation;
 import com.myarea.myarea.entity.SubSubLocation;
 import com.myarea.myarea.repository.SubLocationRepository;
-import com.myarea.myarea.repository.SubSubLocationRepository;
 import com.myarea.myarea.service.SubSubLocationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;

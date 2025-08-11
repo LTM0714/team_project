@@ -1,6 +1,5 @@
 package com.myarea.myarea.dto;
 
-import com.myarea.myarea.entity.Like_post;
 import com.myarea.myarea.entity.SubLocation;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -20,3 +19,4 @@ public class SubLocationDto {
         );
     }
 }
+

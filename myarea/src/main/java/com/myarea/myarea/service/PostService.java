@@ -9,6 +9,7 @@ import com.myarea.myarea.repository.LocationRepository;
 import com.myarea.myarea.repository.PostRepository;
 import com.myarea.myarea.repository.SubSubLocationRepository;
 import com.myarea.myarea.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -30,9 +32,15 @@ public class PostService {
     private SubSubLocationService subSubLocationService;
 
 
-    public List<Post> index() { return postRepository.findAll(); }
+    public List<PostDto> index() {
+        return postRepository.findAll().stream()
+                .map(PostDto::fromEntity)
+                .collect(Collectors.toList()); }
 
-    public Post show(Long post_id) { return postRepository.findById(post_id).orElse(null); }
+    public PostDto show(Long post_id) {
+        return postRepository.findById(post_id)
+                .map(PostDto::fromEntity)
+                .orElseThrow(()->new EntityNotFoundException("Post not found")); }
 
     public Post create(PostDto dto, User user) {
         Location location = null;

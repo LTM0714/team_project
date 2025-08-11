@@ -25,11 +25,11 @@ public class PostController {
 
     // 전체 게시물 조회
     @GetMapping
-    public List<Post> index(){ return postService.index(); }
+    public List<PostDto> index(){ return postService.index(); }
 
     // postId를 이용한 게시물 조회
     @GetMapping("{id}")
-    public Post show(@PathVariable Long id){
+    public PostDto show(@PathVariable Long id){
         return postService.show(id);
     }
 
