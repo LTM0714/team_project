@@ -58,9 +58,16 @@ public class JwtUtil {
             Jwts.parserBuilder().setSigningKey(secretKey).build()
                     .parseClaimsJws(token);
             return true;
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            System.out.println("JWT expired: " + e.getMessage());
+        } catch (io.jsonwebtoken.SignatureException e) {
+            System.out.println("JWT signature invalid: " + e.getMessage());
+        } catch (io.jsonwebtoken.MalformedJwtException e) {
+            System.out.println("JWT malformed: " + e.getMessage());
         } catch (Exception e) {
-            return false;
+            System.out.println("JWT invalid: " + e.getMessage());
         }
+        return false;
     }
 
     // 토큰 안 모든 Claims(Payload 정보들)를 반환

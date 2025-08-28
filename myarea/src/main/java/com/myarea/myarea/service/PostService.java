@@ -15,8 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -24,25 +25,31 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class PostService {
+    private static final int MAX_IMAGES = 5;
+
     @Autowired
     private PostRepository postRepository;
     @Autowired
     private LocationRepository locationRepository;
     @Autowired
     private SubSubLocationService subSubLocationService;
+    @Autowired
+    private S3UrlService s3UrlService;
+    @Autowired
+    private AWS_S3Service awsS3Service;
 
 
     public List<PostDto> index() {
         return postRepository.findAll().stream()
-                .map(PostDto::fromEntity)
+                .map(p -> PostDto.fromEntity(p, s3UrlService::toViewUrl))
                 .collect(Collectors.toList()); }
 
     public PostDto show(Long post_id) {
         return postRepository.findById(post_id)
-                .map(PostDto::fromEntity)
+                .map(p -> PostDto.fromEntity(p, s3UrlService::toViewUrl))
                 .orElseThrow(()->new EntityNotFoundException("Post not found")); }
 
-    public Post create(PostDto dto, User user) {
+    public PostDto create(PostDto dto, User user, List<MultipartFile> files) {
         Location location = null;
 
         boolean hasManualLocation = dto.getLatitude() != null && dto.getLongitude() != null && dto.getAddress() != null;
@@ -75,12 +82,25 @@ public class PostService {
             location = locationRepository.save(location);
         }
 
-        Post post = dto.toEntity(user, location);
+        Post saved = postRepository.save(dto.toEntity(user, location));
 
-        return postRepository.save(post);
+        List<String> keys = new ArrayList<>();
+        try {
+            if (files != null && !files.isEmpty()) {
+                keys = awsS3Service.uploadFile(saved.getPostId(), files); // 네트워크 작업
+                saved.setImageKeyList(keys);
+                saved = postRepository.save(saved); // 이미지 반영된 후 저장
+            }
+            return PostDto.fromEntity(saved, s3UrlService::toViewUrl);
+        } catch (Exception e) {
+            if (!keys.isEmpty()) {
+                awsS3Service.deleteFiles(keys); // 실패 시 업로드 파일 삭제
+            }
+            throw new RuntimeException("게시물 생성 중 오류 발생", e);
+        }
     }
 
-    public Post update(Long post_id, PostDto dto, User user) {
+    public Post update(Long post_id, PostDto dto, User user, List<MultipartFile> files) {
         Post target = postRepository.findById(post_id).orElse(null);
 
         if (target == null) return null;
@@ -128,6 +148,31 @@ public class PostService {
         // patch
         target.patch(dto.toEntity(user, location));
 
+        // 이미지 업데이트
+        List<String> existingKeys = Optional.ofNullable(dto.getExistingImageKeys())
+                .orElseGet(ArrayList::new);
+
+        List<String> newlyUploadedKeys = new ArrayList<>();
+        if(files != null && !files.isEmpty()) {
+            if(existingKeys.size() + files.size() > MAX_IMAGES) {
+                throw new IllegalArgumentException("이미지는 최대 " + MAX_IMAGES + "개까지 업로드할 수 있습니다.");
+            }
+            newlyUploadedKeys = awsS3Service.uploadFile(post_id, files);
+        }
+
+        // S3에서 삭제 대상 찾기
+        List<String> currentKeys = target.getImageKeyList();
+        List<String> toDelete = currentKeys.stream()
+                .filter(k -> !existingKeys.contains(k))
+                .collect(Collectors.toList());
+
+        awsS3Service.deleteFiles(toDelete);
+
+        // 최종 이미지 키 세팅 → DB 반영
+        List<String> finalKeys = new ArrayList<>(existingKeys);
+        finalKeys.addAll(newlyUploadedKeys);
+        target.setImageKeyList(finalKeys);
+
         return postRepository.save(target);
     }
 
@@ -142,7 +187,18 @@ public class PostService {
             return false; // 권한 없음
         }
 
+        List<String> keysToDelete = new ArrayList<>(target.getImageKeyList());
+
         postRepository.delete(target);
+
+        // 3) S3 삭제 (예외는 삼켜서 DB 롤백 안 되게)
+        try {
+            if (!keysToDelete.isEmpty()) {
+                awsS3Service.deleteFiles(keysToDelete);
+            }
+        } catch (Exception e) {
+            log.warn("S3 삭제 실패 postId={}, keys={}", post_id, keysToDelete, e);
+        }
         return true;
     }
 

@@ -28,6 +28,8 @@ public class Like_postService {
     private UserRepository userRepository;
     @Autowired
     private PostRepository postRepository;
+    @Autowired
+    private S3UrlService s3UrlService;
 
     public List<PostDto> getLike_post(Long user_id) {
         List<Long> post_ids = like_postRepository.findByUser_id(user_id)
@@ -36,7 +38,7 @@ public class Like_postService {
                 .collect(Collectors.toList());
 
         return postRepository.findAllById(post_ids).stream()
-                .map(PostDto::fromEntity)
+                .map(p -> PostDto.fromEntity(p, s3UrlService::toViewUrl))
                 .collect(Collectors.toList());
     }
 

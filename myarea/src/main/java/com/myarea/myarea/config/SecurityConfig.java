@@ -33,6 +33,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         // csrf 비활성화(JWT는 세션을 사용하지 않기 때문에)
         http.csrf(csrf -> csrf.disable());
+        http.cors(cors -> {});
 
         // 세션을 Stateless 방식으로 설정(서버에서 세션을 저장하지 않음)
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
@@ -48,6 +49,11 @@ public class SecurityConfig {
         // JWT 인증 필터 등록
         http.addFilterBefore(new JwtAuthenticationFilter(jwtUtil, userDetailsService),
                 UsernamePasswordAuthenticationFilter.class);
+
+        http.exceptionHandling(ex -> ex
+                .authenticationEntryPoint((req, res, e) -> res.sendError(401, "Unauthorized"))
+                .accessDeniedHandler((req, res, e) -> res.sendError(403, "Forbidden"))
+        );
 
         return http.build();
     }

@@ -5,15 +5,20 @@ import com.myarea.myarea.entity.Post;
 import com.myarea.myarea.entity.User;
 import com.myarea.myarea.jwt.JwtUtil;
 import com.myarea.myarea.repository.UserRepository;
+import com.myarea.myarea.service.AWS_S3Service;
 import com.myarea.myarea.service.PostService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/posts")
 public class PostController {
     @Autowired
@@ -34,8 +39,9 @@ public class PostController {
     }
 
     // 게시물 생성
-    @PostMapping
-    public ResponseEntity<?> create(@RequestBody PostDto dto,
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> create(@ModelAttribute PostDto dto,
+                                    @RequestParam(value = "multipartFile", required = false) List<MultipartFile> files,
                                     @RequestHeader(value = "Authorization", required = false) String authHeader){
         try{
             // 1. Authorization 헤더가 없거나 Bearer 형식이 아닌 경우
@@ -62,20 +68,23 @@ public class PostController {
             }
             
             // 6. 게시물 생성
-            Post created = postService.create(dto, user);
+            PostDto created = postService.create(dto, user, files);
             
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
             
-        }catch(Exception e){
+        } catch(IllegalArgumentException e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch(Exception e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error creating post: " + e.getMessage());
         }
     }
 
     // 게시물 수정
-    @PatchMapping("{id}")
-    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody PostDto dto,
-                                       @RequestHeader(value = "Authorization", required = false) String authHeader) {
+    @PatchMapping(value = "{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> update(@PathVariable Long id, @ModelAttribute PostDto dto,
+                                    @RequestParam(value = "multipartFile", required = false) List<MultipartFile> files,
+                                    @RequestHeader(value = "Authorization", required = false) String authHeader) {
         try {
             // 1. 토큰 존재 및 형식 확인
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -100,7 +109,7 @@ public class PostController {
             }
 
             // 6. 게시물 수정
-            Post updated = postService.update(id, dto, user);
+            Post updated = postService.update(id, dto, user, files);
 
             // 7. 작성자 불일치 또는 실패 시 권한 없음 응답
             if (updated == null) {
