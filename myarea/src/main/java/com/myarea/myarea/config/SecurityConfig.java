@@ -40,7 +40,8 @@ public class SecurityConfig {
 
         // 경로별 인가
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/users/login", "/api/users/signup", "/api/users/refresh").permitAll()
+                .requestMatchers("/api/users/login", "/api/users/signup", "/api/users/refresh",
+                        "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole(UserRole.ADMIN.name())
                 .requestMatchers("/api/user/**").hasAnyRole(UserRole.USER.name(), UserRole.ADMIN.name())
                 .anyRequest().authenticated()

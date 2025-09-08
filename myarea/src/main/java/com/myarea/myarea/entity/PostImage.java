@@ -27,6 +27,7 @@ public class PostImage {
     @Column(name = "s3_key", nullable = false, length = 1024)
     private String s3_key;
 
+    @Builder.Default
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder = 0;
 
