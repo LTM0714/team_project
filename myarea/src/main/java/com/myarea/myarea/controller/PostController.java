@@ -1,11 +1,16 @@
 package com.myarea.myarea.controller;
 
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.lang.GeoLocation;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.exif.GpsDirectory;
 import com.myarea.myarea.dto.PostDto;
 import com.myarea.myarea.entity.Post;
 import com.myarea.myarea.entity.User;
 import com.myarea.myarea.jwt.JwtUtil;
 import com.myarea.myarea.repository.UserRepository;
 import com.myarea.myarea.service.AWS_S3Service;
+import com.myarea.myarea.service.KakaoMapService;
 import com.myarea.myarea.service.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.InputStream;
 import java.util.List;
 
 @RestController
@@ -27,6 +33,8 @@ public class PostController {
     private JwtUtil jwtUtil;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private KakaoMapService kakaoMapService;
 
     // 전체 게시물 조회
     @GetMapping
@@ -66,7 +74,31 @@ public class PostController {
             if(user == null){
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
             }
-            
+
+            if (files != null && !files.isEmpty()) {
+                MultipartFile firstFile = files.get(0);
+
+                try (InputStream in = firstFile.getInputStream()) {
+                    Metadata metadata = ImageMetadataReader.readMetadata(in);
+
+                    GpsDirectory gpsDir = metadata.getFirstDirectoryOfType(GpsDirectory.class);
+                    if (gpsDir != null) {
+                        GeoLocation geoLocation = gpsDir.getGeoLocation();
+                        if (geoLocation != null) {
+                            double latitude = geoLocation.getLatitude();
+                            double longitude = geoLocation.getLongitude();
+                            String address = kakaoMapService.getAddressFromCoords(longitude, latitude);
+
+                            dto.setLatitude(latitude);
+                            dto.setLongitude(longitude);
+                            dto.setAddress(address);
+
+                            System.out.println("Extracted GPS -> lat: " + latitude + ", lon: " + longitude + ", address: " + address);
+                        }
+                    }
+                }
+            }
+
             // 6. 게시물 생성
             PostDto created = postService.create(dto, user, files);
             
