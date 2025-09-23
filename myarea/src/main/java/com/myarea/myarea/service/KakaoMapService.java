@@ -8,7 +8,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Service
 public class KakaoMapService {
-    private static final String KAKAO_API_KEY = "a963bc2f3b3efd088d0e5e747c1a47f9"; // REST API 키
+    private static final String KAKAO_API_KEY = ""; // REST API 키
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
