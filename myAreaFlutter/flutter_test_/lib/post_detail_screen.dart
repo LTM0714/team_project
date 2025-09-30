@@ -4,8 +4,8 @@ import 'like_model.dart';
 import 'post_model.dart';
 
 class PostDetailScreen extends StatefulWidget {
-  final List<Post> posts; // 전체 게시글 목록
-  final int initialIndex; // 시작 인덱스
+  final List<Post> posts;       // 전체 게시글 목록
+  final int initialIndex;       // 시작 인덱스
 
   const PostDetailScreen({
     required this.posts,
@@ -53,6 +53,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           itemBuilder: (context, index) {
             final post = widget.posts[index];
             final isLiked = likeModel.isLiked(post);
+
             return Stack(
               children: [
                 Column(
@@ -66,28 +67,38 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         ),
                       ),
                     ),
-                    SizedBox(height: 24),
+                    const SizedBox(height: 24),
                     Text(
                       post.region,
-                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       _formatDate(post.date),
-                      style: TextStyle(color: Colors.white60, fontSize: 13),
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 13,
+                      ),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       child: Text(
                         post.desc,
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    SizedBox(height: 40),
+                    const SizedBox(height: 40),
                   ],
                 ),
                 Positioned(
@@ -102,7 +113,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     onPressed: () => likeModel.toggle(post),
                   ),
                 ),
-                // ← 여기서 index 안내(예: Positioned(top: ..., right: ..., ...) 부분을 완전히 삭제!
               ],
             );
           },
