@@ -48,7 +48,9 @@ class _MainTabNavigatorState extends State<MainTabNavigator> {
   String _intro = '자기소개를 입력하세요.';
 
   final List<String> _regions = [
-    '서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종',
+    '서울', '서울-홍대', '서울-이태원', '서울-압구정', '서울-강남역', '서울-명동',
+    '서울-건대입구', '서울-잠실', '서울-신촌', '서울-여의도', '서울-종로',
+     '부산', '대구', '인천', '광주', '대전', '울산', '세종',
     '경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'
   ];
 
@@ -97,7 +99,7 @@ class _MainTabNavigatorState extends State<MainTabNavigator> {
           regions: _regions,
         ),
         ActivityScreen(
-          allPosts: myPosts,
+          posts: myPosts,
         ),
         ProfileScreen(
           myPosts: myPosts,
