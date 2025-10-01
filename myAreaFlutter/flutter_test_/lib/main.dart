@@ -8,6 +8,7 @@ import 'create_screen.dart';
 import 'activity_screen.dart';
 import 'profile_screen.dart';
 import 'search_tab.dart';
+import 'login_screen.dart'; // 로그인 추가
 
 void main() {
   runApp(
@@ -27,7 +28,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: '지역기반 SNS',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const MainTabNavigator(),
+      home: const LoginScreen(), // 로그인 화면부터 시작
       debugShowCheckedModeBanner: false,
     );
   }
