@@ -6,7 +6,7 @@ import 'post_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final List<Post> myPosts;
-  final List<Post> likedPosts; // ✅ 추가: 좋아요한 게시글 목록
+  final List<Post> likedPosts;
   final File? profileImage;
   final void Function(File?) onEditProfileImage;
   final String intro;
@@ -17,7 +17,7 @@ class ProfileScreen extends StatefulWidget {
 
   const ProfileScreen({
     required this.myPosts,
-    required this.likedPosts, // ✅ 추가
+    required this.likedPosts,
     required this.profileImage,
     required this.onEditProfileImage,
     required this.intro,
@@ -35,7 +35,25 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditingIntro = false;
   final TextEditingController _introController = TextEditingController();
-  bool _showLiked = false; // ✅ 추가: 토글 상태 (false=내 게시글, true=좋아요한 게시글)
+  bool _showLiked = false;
+
+  // 로컬 복제본: 외부에서 전달된 리스트를 직접 변경하지 않도록 로컬에서 관리
+  late List<Post> myPostsLocal;
+  late List<Post> likedPostsLocal;
+
+  // 마지막 탭의 롱프레스 위치(글로벌 좌표) — showMenu에 사용
+  Offset? _tapPosition;
+
+  @override
+  void initState() {
+    super.initState();
+    myPostsLocal = List.from(widget.myPosts);
+    likedPostsLocal = List.from(widget.likedPosts);
+  }
+
+  void _storeTapPosition(TapDownDetails details) {
+    _tapPosition = details.globalPosition;
+  }
 
   void _pickProfileImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -64,7 +82,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (ctx) {
         List<String> tempSelected = List.from(widget.interestRegions);
         return AlertDialog(
-          title: Text('관심지역 선택'),
+          title: const Text('관심지역 선택'),
           content: StatefulBuilder(
             builder: (context, setState) {
               return SizedBox(
@@ -88,9 +106,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           });
                         },
                         child: AnimatedContainer(
-                          duration: Duration(milliseconds: 120),
-                          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                          margin: EdgeInsets.symmetric(vertical: 4),
+                          duration: const Duration(milliseconds: 120),
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                          margin: const EdgeInsets.symmetric(vertical: 4),
                           decoration: BoxDecoration(
                             color: isSelected ? Colors.blue : Colors.grey[200],
                             borderRadius: BorderRadius.circular(16),
@@ -112,8 +130,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, null), child: Text('취소')),
-            TextButton(onPressed: () => Navigator.pop(ctx, tempSelected), child: Text('확인')),
+            TextButton(onPressed: () => Navigator.pop(ctx, null), child: const Text('취소')),
+            TextButton(onPressed: () => Navigator.pop(ctx, tempSelected), child: const Text('확인')),
           ],
         );
       },
@@ -123,19 +141,103 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _confirmAndDeletePost({required Post post, required bool fromLiked}) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('삭제 확인'),
+        content: const Text('삭제하시겠습니까?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('아니오')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('예')),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      setState(() {
+        // 삭제: 내 게시글에서만 삭제할 경우 myPostsLocal에서 제거
+        myPostsLocal.removeWhere((p) => identical(p, post) || p == post);
+        // 좋아요 목록에서도 제거
+        likedPostsLocal.removeWhere((p) => identical(p, post) || p == post);
+      });
+    }
+  }
+
+  // 롱프레스 시 해당 위치에 작은 메뉴(삭제)를 띄움
+  Future<void> _showLongPressMenu({required Post post, required bool fromLiked}) async {
+    if (_tapPosition == null) return;
+
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final result = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromPoints(_tapPosition!, _tapPosition!),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        PopupMenuItem<String>(
+          value: 'delete',
+          child: Container(
+            width: 120,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Text('삭제', style: TextStyle(color: Colors.red)),
+          ),
+        ),
+      ],
+      elevation: 2,
+    );
+
+    if (result == 'delete') {
+      await _confirmAndDeletePost(post: post, fromLiked: fromLiked);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final sortedMyPosts = [...widget.myPosts]..sort((a, b) => b.date.compareTo(a.date));
-    final sortedLikedPosts = [...widget.likedPosts]..sort((a, b) => b.date.compareTo(a.date));
-
+    // 정렬: 최신순
+    final sortedMyPosts = [...myPostsLocal]..sort((a, b) => b.date.compareTo(a.date));
+    final sortedLikedPosts = [...likedPostsLocal]..sort((a, b) => b.date.compareTo(a.date));
     final postsToShow = _showLiked ? sortedLikedPosts : sortedMyPosts;
 
     return Scaffold(
-      appBar: AppBar(title: Text('프로필')),
+      appBar: AppBar(
+        title: const Text('프로필'),
+        actions: [
+          // 케밥 메뉴: 드롭다운으로 '로그아웃' 항목(사각형 스타일)만 표시, 기능 없음
+          PopupMenuButton<int>(
+            padding: const EdgeInsets.only(right: 8),
+            icon: const Icon(Icons.more_vert),
+            itemBuilder: (context) => [
+              PopupMenuItem<int>(
+                value: 0,
+                // 사각형으로 보이는 로그아웃 "버튼" 스타일
+                child: Container(
+                  width: 140,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    color: Colors.white,
+                  ),
+                  child: const Text('로그아웃', style: TextStyle(color: Colors.black87)),
+                ),
+              ),
+            ],
+            onSelected: (value) {
+              // 기능 없음: 드롭다운만 보여주기
+            },
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            SizedBox(height: 28),
+            const SizedBox(height: 28),
             GestureDetector(
               onTap: _pickProfileImage,
               child: CircleAvatar(
@@ -143,17 +245,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 backgroundColor: Colors.grey[300],
                 backgroundImage: widget.profileImage != null ? FileImage(widget.profileImage!) : null,
                 child: widget.profileImage == null
-                    ? Icon(Icons.person, size: 48, color: Colors.white)
+                    ? const Icon(Icons.person, size: 48, color: Colors.white)
                     : null,
               ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             TextButton.icon(
               onPressed: _pickProfileImage,
-              icon: Icon(Icons.camera_alt, size: 18),
-              label: Text('프로필 사진 변경'),
+              icon: const Icon(Icons.camera_alt, size: 18),
+              label: const Text('프로필 사진 변경'),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             _isEditingIntro
                 ? Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -170,7 +272,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            TextButton(onPressed: _saveIntro, child: Text('저장')),
+                            TextButton(onPressed: _saveIntro, child: const Text('저장')),
                           ],
                         )
                       ],
@@ -185,49 +287,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Expanded(
                             child: Text(
                               widget.intro,
-                              style: TextStyle(fontSize: 15, color: Colors.black87),
+                              style: const TextStyle(fontSize: 15, color: Colors.black87),
                             ),
                           ),
-                          Icon(Icons.edit, size: 18, color: Colors.blueGrey),
+                          const Icon(Icons.edit, size: 18, color: Colors.blueGrey),
                         ],
                       ),
                     ),
                   ),
-            SizedBox(height: 14),
+            const SizedBox(height: 14),
             // 관심지역
             Padding(
-              padding: EdgeInsets.only(left: 16, right: 0),
+              padding: const EdgeInsets.only(left: 16, right: 0),
               child: Row(
                 children: [
                   GestureDetector(
                     onTap: _editInterestRegions,
                     child: Container(
-                      padding: EdgeInsets.all(4),
-                      child: Icon(Icons.edit_location_alt, size: 20, color: Colors.blue),
+                      padding: const EdgeInsets.all(4),
+                      child: const Icon(Icons.edit_location_alt, size: 20, color: Colors.blue),
                     ),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        children: widget.interestRegions.map((region) => Container(
-                          margin: EdgeInsets.symmetric(horizontal: 4),
-                          padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(region, style: TextStyle(fontSize: 13)),
-                        )).toList(),
+                        children: widget.interestRegions
+                            .map((region) => Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue[50],
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Text(region, style: const TextStyle(fontSize: 13)),
+                                ))
+                            .toList(),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            SizedBox(height: 24),
-            // ✅ 토글 버튼
+            const SizedBox(height: 24),
+            // 토글 버튼
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -249,51 +353,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 12),
-            // ✅ 게시글 리스트
+            const SizedBox(height: 12),
+            // 게시글 리스트
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: postsToShow.isEmpty
                   ? Text(_showLiked ? '좋아요한 게시글이 없습니다.' : '아직 게시글이 없습니다.')
                   : ListView.builder(
                       shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
+                      physics: const NeverScrollableScrollPhysics(),
                       itemCount: postsToShow.length,
                       itemBuilder: (context, index) {
                         final post = postsToShow[index];
                         return Card(
-                          margin: EdgeInsets.only(bottom: 12),
-                          child: ListTile(
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            leading: Image.file(post.image, width: 56, height: 56, fit: BoxFit.cover),
-                            title: Text(post.region),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(post.desc),
-                                SizedBox(height: 4),
-                                Text(
-                                  _formatDate(post.date),
-                                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                                ),
-                              ],
-                            ),
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => PostDetailScreen(
-                                    posts: postsToShow,
-                                    initialIndex: index,
-                                  ),
-                                ),
-                              );
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: GestureDetector(
+                            onTapDown: _storeTapPosition, // 롱프레스 메뉴 위치 저장
+                            onLongPress: () async {
+                              await _showLongPressMenu(post: post, fromLiked: _showLiked);
                             },
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              leading: Image.file(post.image, width: 56, height: 56, fit: BoxFit.cover),
+                              title: Text(post.region),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(post.desc),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _formatDate(post.date),
+                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                  ),
+                                ],
+                              ),
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => PostDetailScreen(
+                                      posts: postsToShow,
+                                      initialIndex: index,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         );
                       },
                     ),
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
           ],
         ),
       ),
