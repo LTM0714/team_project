@@ -9,6 +9,7 @@ import com.myarea.myarea.entity.Post;
 import com.myarea.myarea.entity.User;
 import com.myarea.myarea.jwt.JwtUtil;
 import com.myarea.myarea.repository.UserRepository;
+import com.myarea.myarea.response.PageResponse;
 import com.myarea.myarea.service.AWS_S3Service;
 import com.myarea.myarea.service.KakaoMapService;
 import com.myarea.myarea.service.PostService;
@@ -44,6 +45,14 @@ public class PostController {
     @GetMapping("{id}")
     public PostDto show(@PathVariable Long id){
         return postService.show(id);
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<PageResponse<PostDto>> getAllPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "18") int size) {
+
+        return ResponseEntity.ok(postService.findAllWithPaging(page, size));
     }
 
     // 게시물 생성

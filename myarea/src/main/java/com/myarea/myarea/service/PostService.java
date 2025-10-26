@@ -9,15 +9,19 @@ import com.myarea.myarea.repository.LocationRepository;
 import com.myarea.myarea.repository.PostRepository;
 import com.myarea.myarea.repository.SubSubLocationRepository;
 import com.myarea.myarea.repository.UserRepository;
+import org.springframework.data.domain.*;
+import com.myarea.myarea.response.PageResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -41,13 +45,23 @@ public class PostService {
 
     public List<PostDto> index() {
         return postRepository.findAll().stream()
-                .map(p -> PostDto.fromEntity(p, s3UrlService::toViewUrl))
+                .map(p -> PostDto.fromEntity(p, s3UrlService::cloudfront))
                 .collect(Collectors.toList()); }
 
     public PostDto show(Long post_id) {
         return postRepository.findById(post_id)
-                .map(p -> PostDto.fromEntity(p, s3UrlService::toViewUrl))
+                .map(p -> PostDto.fromEntity(p, s3UrlService::cloudfront))
                 .orElseThrow(()->new EntityNotFoundException("Post not found")); }
+
+    public PageResponse<PostDto> findAllWithPaging(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Post> postPage = postRepository.findAll(pageable);
+
+        Function<Post, PostDto> mapper = p -> PostDto.fromEntity(p, s3UrlService::cloudfront);
+        Page<PostDto> dtoPage = postPage.map(mapper);
+
+        return new PageResponse<>(dtoPage);
+    }
 
     public PostDto create(PostDto dto, User user, List<MultipartFile> files) {
         Location location = null;
@@ -91,7 +105,7 @@ public class PostService {
                 saved.setImageKeyList(keys);
                 saved = postRepository.save(saved); // 이미지 반영된 후 저장
             }
-            return PostDto.fromEntity(saved, s3UrlService::toViewUrl);
+            return PostDto.fromEntity(saved, s3UrlService::cloudfront);
         } catch (Exception e) {
             if (!keys.isEmpty()) {
                 awsS3Service.deleteFiles(keys); // 실패 시 업로드 파일 삭제

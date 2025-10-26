@@ -16,4 +16,8 @@ public class S3UrlService {
     public String toViewUrl(String key) {
         return "https://" + bucket + ".s3." + region + ".amazonaws.com/" + key;
     }
+
+    public String cloudfront(String key) {
+        return "https://d340lgnzbiyzns.cloudfront.net/" + key;
+    }
 }
