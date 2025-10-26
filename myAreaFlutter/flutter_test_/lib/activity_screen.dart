@@ -1,56 +1,77 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'like_model.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+
 import 'post_model.dart';
 import 'post_detail_screen.dart';
 
 class ActivityScreen extends StatelessWidget {
-  final List<Post> allPosts;
-  const ActivityScreen({required this.allPosts, super.key});
+  final List<Post> posts;
+
+  const ActivityScreen({super.key, required this.posts});
 
   @override
   Widget build(BuildContext context) {
-    final likeModel = Provider.of<LikeModel>(context);
-    final likedPosts = allPosts.where((post) => likeModel.isLiked(post)).toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
     return Scaffold(
-      appBar: AppBar(title: Text('좋아요한 사진')),
-      body: likedPosts.isEmpty
-          ? Center(child: Text('좋아요한 사진이 없습니다.'))
-          : ListView.builder(
-              itemCount: likedPosts.length,
-              itemBuilder: (context, index) {
-                final post = likedPosts[index];
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => PostDetailScreen(
-                          posts: likedPosts,
-                          initialIndex: index,
-                        ),
+      appBar: AppBar(title: const Text('지도에서 보기')),
+      body: FlutterMap(
+        options: MapOptions(
+          initialCenter: posts.isNotEmpty
+              ? LatLng(posts.last.latitude, posts.last.longitude)
+              : const LatLng(37.5665, 126.9780), // 기본: 서울 시청
+          initialZoom: 13,
+          interactionOptions: const InteractionOptions(
+            flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+          ),
+        ),
+        children: [
+          TileLayer(
+            urlTemplate: 'https://a.tile.openstreetmap.de/{z}/{x}/{y}.png',
+            userAgentPackageName: 'com.example.app',
+          ),
+          MarkerLayer(
+            markers: posts.asMap().entries.map((entry) {
+              final index = entry.key;
+              final post = entry.value;
+
+              return Marker(
+                point: LatLng(post.latitude, post.longitude),
+                width: 60,
+                height: 60,
+                child: GestureDetector(
+                onTap: () {
+                  final sameRegionPosts = posts
+                      .where((p) => p.region == post.region)
+                      .toList()
+                    ..sort((a, b) => b.date.compareTo(a.date)); // 최신순 정렬
+
+                  final localIndex = sameRegionPosts.indexOf(post);
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PostDetailScreen(
+                        posts: sameRegionPosts,
+                        initialIndex: localIndex,
                       ),
-                    );
-                  },
-                  child: Card(
-                    margin: EdgeInsets.all(8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        AspectRatio(
-                          aspectRatio: 1,
-                          child: Image.file(post.image, fit: BoxFit.cover),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.all(10),
-                          child: Text(post.desc, style: TextStyle(fontSize: 15)),
-                        ),
-                      ],
+                    ),
+                  );
+                },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(
+                      post.image,
+                      fit: BoxFit.cover,
+                      width: 60,
+                      height: 60,
                     ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 }
