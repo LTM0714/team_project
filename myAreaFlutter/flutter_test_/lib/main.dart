@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: '지역기반 SNS',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const LoginScreen(), // 로그인 화면부터 시작
+      home: const MainTabNavigator(), // 수정: MainTabNavigator부터 시작
       debugShowCheckedModeBanner: false,
     );
   }
@@ -44,15 +44,17 @@ class _MainTabNavigatorState extends State<MainTabNavigator> {
   int _selectedIndex = 0;
   List<Post> myPosts = [];
 
-  List<String> _interestRegions = ['서울'];
+  List<String> _interestRegions = [];
   File? _profileImage;
   String _intro = '자기소개를 입력하세요.';
 
   final List<String> _regions = [
-    '서울', '서울-홍대', '서울-이태원', '서울-압구정', '서울-강남역', '서울-명동',
-    '서울-건대입구', '서울-잠실', '서울-신촌', '서울-여의도', '서울-종로',
-     '부산', '대구', '인천', '광주', '대전', '울산', '세종',
-    '경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'
+    '강남', '강동', '강북', '강서', '관악', '광진', '구로', '금천', 
+    '노원', '도봉', '동대문', '동작', '마포', '서대문', '서초', '성동', 
+    '성북', '송파', '양천', '영등포', '용산', '은평', '종로', '중구', '중랑',
+    
+    '부산', '대구', '인천', '광주', '대전', '울산', '세종',
+    
   ];
 
   void _onUpload(Post post) {
@@ -73,12 +75,9 @@ class _MainTabNavigatorState extends State<MainTabNavigator> {
     });
   }
 
-  // 관심지역은 최소 1개 이상 유지
   void _onEditInterestRegions(List<String> regions) {
     setState(() {
-      if (regions.isNotEmpty) {
-        _interestRegions = regions;
-      }
+      _interestRegions = regions;
     });
   }
 
