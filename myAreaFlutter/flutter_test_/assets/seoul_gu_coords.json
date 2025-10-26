@@ -1,0 +1,152 @@
+[
+    {
+        "subsubId": 0,
+        "address": "강남구",
+        "latitude": 37.4951,
+        "longitude": 127.06278
+    },
+    {
+        "subsubId": 1,
+        "address": "강동구",
+        "latitude": 37.55274,
+        "longitude": 127.14546
+    },
+    {
+        "subsubId": 2,
+        "address": "강북구",
+        "latitude": 37.6349,
+        "longitude": 127.02015
+    },
+    {
+        "subsubId": 3,
+        "address": "강서구",
+        "latitude": 37.56227,
+        "longitude": 126.81622
+    },
+    {
+        "subsubId": 4,
+        "address": "관악구",
+        "latitude": 37.47876,
+        "longitude": 126.95235
+    },
+    {
+        "subsubId": 5,
+        "address": "광진구",
+        "latitude": 37.53913,
+        "longitude": 127.08366
+    },
+    {
+        "subsubId": 6,
+        "address": "구로구",
+        "latitude": 37.49447,
+        "longitude": 126.8502
+    },
+    {
+        "subsubId": 7,
+        "address": "금천구",
+        "latitude": 37.47486,
+        "longitude": 126.89106
+    },
+    {
+        "subsubId": 8,
+        "address": "노원구",
+        "latitude": 37.66045,
+        "longitude": 127.06718
+    },
+    {
+        "subsubId": 9,
+        "address": "도봉구",
+        "latitude": 37.65066,
+        "longitude": 127.03011
+    },
+    {
+        "subsubId": 10,
+        "address": "동대문구",
+        "latitude": 37.58189,
+        "longitude": 127.05408
+    },
+    {
+        "subsubId": 11,
+        "address": "동작구",
+        "latitude": 37.50056,
+        "longitude": 126.95149
+    },
+    {
+        "subsubId": 12,
+        "address": "마포구",
+        "latitude": 37.55438,
+        "longitude": 126.90926
+    },
+    {
+        "subsubId": 13,
+        "address": "서대문구",
+        "latitude": 37.57809,
+        "longitude": 126.93506
+    },
+    {
+        "subsubId": 14,
+        "address": "서초구",
+        "latitude": 37.49447,
+        "longitude": 127.01088
+    },
+    {
+        "subsubId": 15,
+        "address": "성동구",
+        "latitude": 37.54784,
+        "longitude": 127.02461
+    },
+    {
+        "subsubId": 16,
+        "address": "성북구",
+        "latitude": 37.60267,
+        "longitude": 127.01448
+    },
+    {
+        "subsubId": 17,
+        "address": "송파구",
+        "latitude": 37.5021,
+        "longitude": 127.11113
+    },
+    {
+        "subsubId": 18,
+        "address": "양천구",
+        "latitude": 37.52056,
+        "longitude": 126.87472
+    },
+    {
+        "subsubId": 19,
+        "address": "영등포구",
+        "latitude": 37.52606,
+        "longitude": 126.90308
+    },
+    {
+        "subsubId": 20,
+        "address": "용산구",
+        "latitude": 37.53391,
+        "longitude": 126.9775
+    },
+    {
+        "subsubId": 21,
+        "address": "은평구",
+        "latitude": 37.61846,
+        "longitude": 126.9278
+    },
+    {
+        "subsubId": 22,
+        "address": "종로구",
+        "latitude": 37.5729,
+        "longitude": 126.97928
+    },
+    {
+        "subsubId": 23,
+        "address": "중구",
+        "latitude": 37.55986,
+        "longitude": 126.99398
+    },
+    {
+        "subsubId": 24,
+        "address": "중랑구",
+        "latitude": 37.60199,
+        "longitude": 127.10461
+    }
+]
