@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'dart:convert';
+import 'package:flutter/services.dart';
 
-const Map<String, LatLng> regionCoordinates = {
-  '서울': LatLng(37.5665, 126.9780),
-  '부산': LatLng(35.1796, 129.0756),
-  '대구': LatLng(35.8722, 128.6025),
-  '인천': LatLng(37.4563, 126.7052),
-  '광주': LatLng(35.1595, 126.8526),
-  '대전': LatLng(36.3504, 127.3845),
-  '울산': LatLng(35.5396, 129.3114),
-  // 실제 사용시 더 많이 추가
-};
+Map<String, LatLng> regionCoordinates = {};
+
+final LatLngBounds koreaBounds = LatLngBounds(
+  const LatLng(33.0, 124.0),
+  const LatLng(43.0, 132.0),
+);
 
 class SearchTab extends StatefulWidget {
-  final List<String> regions;
+  final List<String> regions; 
   final List<String> interestRegions;
   final void Function(List<String>) onEditInterestRegions;
 
@@ -34,9 +32,43 @@ class _SearchTabState extends State<SearchTab> with TickerProviderStateMixin {
   List<String> _filteredRegions = [];
   String _searchText = '';
   late MapController _mapController;
-  LatLng _mapCenter = LatLng(36.5, 127.8); // 대한민국 중심 대략값
+  LatLng _mapCenter = LatLng(36.5, 127.8);
   double _mapZoom = 7.0;
   LatLng? _selectedMarker;
+  
+  bool _isLoadingCoords = true;
+
+  final Map<String, LatLng> _majorCityCoords = {
+    '부산': LatLng(35.1796, 129.0756),
+    '대구': LatLng(35.8722, 128.6014),
+    '인천': LatLng(37.4563, 126.7052),
+    '광주': LatLng(35.1595, 126.8526),
+    '대전': LatLng(36.3504, 127.3845),
+    '울산': LatLng(35.5384, 129.3113),
+    '세종': LatLng(36.4800, 127.2890)
+  };
+  
+  String _getDisplayName(String fullRegionName) {
+    if (fullRegionName.endsWith('구')) {
+      String guName = fullRegionName; 
+
+      String simplified = guName.endsWith('구') ? guName.substring(0, guName.length - 1) : guName;
+      simplified = simplified.trim(); 
+
+      if (simplified.length == 1 && guName.length > 1) { 
+        return guName; 
+      }
+      
+      return simplified; 
+    }
+    else if (fullRegionName.endsWith('광역시') || fullRegionName.endsWith('특별자치시')) {
+      return fullRegionName.replaceAll('광역시', '').replaceAll('특별자치시', '').trim();
+    }
+    else if (fullRegionName == '지역 정보 없음') {
+      return fullRegionName;
+    }
+    return fullRegionName;
+  }
 
   @override
   void initState() {
@@ -44,13 +76,49 @@ class _SearchTabState extends State<SearchTab> with TickerProviderStateMixin {
     _mapController = MapController();
     _filteredRegions = widget.regions;
     _searchController.addListener(_onSearchTextChanged);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _fitInterestRegionBounds());
+    
+    _loadRegionCoordinates().then((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _fitInterestRegionBounds());
+    });
+  }
+
+  Future<void> _loadRegionCoordinates() async {
+    try {
+      final String response = await rootBundle.loadString('assets/seoul_gu_coords.json');
+      final List<dynamic> jsonList = jsonDecode(response);
+
+      final Map<String, LatLng> loadedCoords = {};
+
+      for (var item in jsonList) {
+        final name = item['address'].toString(); 
+        loadedCoords[name] = LatLng(
+          (item['latitude'] as num).toDouble(),
+          (item['longitude'] as num).toDouble(),
+        );
+      }
+      
+      _majorCityCoords.forEach((name, coords) {
+          loadedCoords[name] = coords;
+      });
+
+      regionCoordinates = loadedCoords;
+
+      setState(() {
+        _isLoadingCoords = false;
+      });
+
+    } catch (e) {
+      print("지역 좌표 로딩 오류: $e");
+      setState(() {
+        _isLoadingCoords = false;
+      });
+    }
   }
 
   @override
   void didUpdateWidget(SearchTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.interestRegions != widget.interestRegions) {
+    if (oldWidget.interestRegions != widget.interestRegions && !_isLoadingCoords) {
       _fitInterestRegionBounds();
     }
   }
@@ -65,94 +133,127 @@ class _SearchTabState extends State<SearchTab> with TickerProviderStateMixin {
   void _onSearchTextChanged() {
     setState(() {
       _searchText = _searchController.text.trim();
+      
       _filteredRegions = widget.regions
-          .where((region) => region.contains(_searchText))
+          .where((region) {
+            final displayName = _getDisplayName(region);
+            return region.contains(_searchText) || displayName.contains(_searchText);
+          })
           .toList();
     });
   }
 
-  // 관심지역들의 영역에 맞춰서 카메라 이동/확대
+  LatLng _clampToBounds(LatLng coord, LatLngBounds bounds) {
+    final south = bounds.south;
+    final west = bounds.west;
+    final north = bounds.north;
+    final east = bounds.east;
+    final lat = coord.latitude.clamp(south, north);
+    final lng = coord.longitude.clamp(west, east);
+    return LatLng(lat, lng);
+  }
+
   void _fitInterestRegionBounds() {
+    if (_isLoadingCoords) return;
+    
     final coords = widget.interestRegions
         .where((r) => regionCoordinates.containsKey(r))
         .map((r) => regionCoordinates[r]!)
         .toList();
+
     if (coords.isEmpty) {
-      // 아무 관심지역 없으면 전국 중심, 낮은 줌
-      _moveMap(LatLng(36.5, 127.8), 7.0);
+      _moveMap(_clampToBounds(LatLng(36.5, 127.8), koreaBounds), 7.0);
       return;
     }
     if (coords.length == 1) {
-      _moveMap(coords.first, 12.0);
+      _moveMap(_clampToBounds(coords.first, koreaBounds), 12.0);
       return;
     }
-    // 여러 개일 때 모두 포함하는 bounds 계산
+
     double minLat = coords.first.latitude;
     double maxLat = coords.first.latitude;
     double minLng = coords.first.longitude;
     double maxLng = coords.first.longitude;
+
     for (var c in coords) {
       if (c.latitude < minLat) minLat = c.latitude;
       if (c.latitude > maxLat) maxLat = c.latitude;
       if (c.longitude < minLng) minLng = c.longitude;
       if (c.longitude > maxLng) maxLng = c.longitude;
     }
+
     final bounds = LatLngBounds(
       LatLng(minLat, minLng),
       LatLng(maxLat, maxLng),
     );
-    _mapController.fitBounds(bounds, options: FitBoundsOptions(padding: EdgeInsets.all(50)));
-    // 지도 센터값 업데이트
+
+    _mapController.fitCamera(
+      CameraFit.bounds(
+        bounds: bounds,
+        padding: const EdgeInsets.all(50),
+      ),
+    );
+
     setState(() {
-      _mapCenter = LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2);
+      _mapCenter = _clampToBounds(LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2), koreaBounds);
     });
   }
 
-  // 지도 이동 및 애니메이션
   void _moveMap(LatLng latLng, double zoom) {
-    _mapController.move(latLng, zoom);
+    final clamped = _clampToBounds(latLng, koreaBounds);
+    final clampedZoom = zoom.clamp(6.0, 18.0);
+    _mapController.move(clamped, clampedZoom);
     setState(() {
-      _mapCenter = latLng;
-      _mapZoom = zoom;
-      _selectedMarker = latLng;
+      _mapCenter = clamped;
+      _mapZoom = clampedZoom;
+      _selectedMarker = clamped;
     });
   }
 
   void _onRegionSearched(String region) {
+    if (_isLoadingCoords) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('지역 데이터를 로드 중입니다. 잠시 후 다시 시도해주세요.')),
+      );
+      return;
+    }
+    
     final coord = regionCoordinates[region];
     if (coord != null) {
       _moveMap(coord, 13.0);
       _showAddInterestDialog(region, coord);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('좌표 데이터가 없는 지역입니다.')),
+        const SnackBar(content: Text('좌표 데이터가 없는 지역입니다.')),
       );
     }
   }
 
-  void _showAddInterestDialog(String region, LatLng coord) async {
+  void _showAddInterestDialog(String fullRegionName, LatLng coord) async {
+    final displayName = _getDisplayName(fullRegionName);
+    
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('관심지역 추가'),
-        content: Text('$region을(를) 관심지역에 추가하시겠습니까?'),
+        title: const Text('관심지역 추가'),
+        content: Text('$displayName을(를) 관심지역에 추가하시겠습니까?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('취소'),
+            child: const Text('취소'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('추가'),
+            child: const Text('추가'),
           ),
         ],
       ),
     );
-    if (result == true && !widget.interestRegions.contains(region)) {
-      final newRegions = List<String>.from(widget.interestRegions)..add(region);
+    if (result == true && !widget.interestRegions.contains(fullRegionName)) {
+      final newRegions = List<String>.from(widget.interestRegions)..add(fullRegionName);
       widget.onEditInterestRegions(newRegions);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$region이(가) 관심지역에 추가되었습니다.')),
+        SnackBar(content: Text('$displayName이(가) 관심지역에 추가되었습니다.')),
       );
     }
   }
@@ -161,22 +262,12 @@ class _SearchTabState extends State<SearchTab> with TickerProviderStateMixin {
     _showAddInterestDialog(region, latLng);
   }
 
-  void _addInterestRegion(String region) async {
-    if (widget.interestRegions.contains(region)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('이미 관심지역에 추가된 지역입니다.')),
-      );
-      return;
-    }
-    final coord = regionCoordinates[region];
-    if (coord != null) {
-      _showAddInterestDialog(region, coord);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    // 관심지역 마커
+    if (_isLoadingCoords) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
     final interestMarkers = widget.interestRegions
         .where((r) => regionCoordinates.containsKey(r))
         .map((r) => Marker(
@@ -185,54 +276,47 @@ class _SearchTabState extends State<SearchTab> with TickerProviderStateMixin {
               point: regionCoordinates[r]!,
               child: GestureDetector(
                 onTap: () => _onMapMarkerTapped(r, regionCoordinates[r]!),
-                child: Icon(Icons.place, color: Colors.green, size: 38),
+                child: const Icon(Icons.place, color: Colors.green, size: 38),
               ),
             ))
         .toList();
 
-    // 검색 결과 마커(빨간색)
     final searchedMarker = (_selectedMarker != null)
         ? [
             Marker(
               width: 48,
               height: 48,
               point: _selectedMarker!,
-              child: Icon(Icons.location_on, color: Colors.red, size: 42),
+              child: const Icon(Icons.location_on, color: Colors.red, size: 42),
             )
           ]
         : [];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('지역 검색'),
+        title: const Text('지역 검색'),
         centerTitle: true,
       ),
       body: Column(
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(16, 20, 16, 10),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
             child: Row(
-              children: [ 
+              children: [
                 Icon(Icons.search, size: 28, color: Colors.grey[600]),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: '지역명을 입력하세요',
+                      hintText: '지역명을 입력하세요 (예: 강남, 부산, 세종)',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                     onSubmitted: (value) {
-                      if (regionCoordinates.containsKey(value)) {
-                        _onRegionSearched(value);
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('알 수 없는 지역입니다.')),
-                        );
-                      }
+                      _onRegionSearched(value); 
                     },
                   ),
                 ),
@@ -241,33 +325,34 @@ class _SearchTabState extends State<SearchTab> with TickerProviderStateMixin {
           ),
           if (_searchText.isNotEmpty && _filteredRegions.isNotEmpty)
             Container(
-              margin: EdgeInsets.symmetric(horizontal: 16),
-              padding: EdgeInsets.symmetric(vertical: 4),
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
-                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
               ),
-              constraints: BoxConstraints(
-                maxHeight: 240,
-              ),
+              constraints: const BoxConstraints(maxHeight: 240),
               child: ListView(
                 shrinkWrap: true,
                 children: _filteredRegions.map((region) {
+                  final displayName = _getDisplayName(region);
+                  
                   return ListTile(
-                    title: Text(region),
+                    title: Text(displayName),
                     onTap: () {
-                      _searchController.text = region;
+                      _searchController.text = displayName; 
+                      
                       _onRegionSearched(region);
                     },
                   );
                 }).toList(),
               ),
             ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Expanded(
             child: Container(
-              margin: EdgeInsets.all(10),
+              margin: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: Colors.blueGrey, width: 1),
@@ -277,22 +362,18 @@ class _SearchTabState extends State<SearchTab> with TickerProviderStateMixin {
                 child: FlutterMap(
                   mapController: _mapController,
                   options: MapOptions(
-                    center: _mapCenter,
-                    zoom: _mapZoom,
-                    onTap: (tapPosition, latLng) {
-                      setState(() {
-                        _selectedMarker = latLng;
-                        _mapCenter = latLng;
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('지도 클릭: ${latLng.latitude}, ${latLng.longitude}')),
-                      );
-                    },
+                    center: _clampToBounds(_mapCenter, koreaBounds),
+                    zoom: _mapZoom.clamp(6.0, 18.0),
+                    minZoom: 6,
+                    maxZoom: 18,
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+                    ),
+                    cameraConstraint: CameraConstraint.contain(bounds: koreaBounds),
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      subdomains: const ['a', 'b', 'c'],
+                      urlTemplate: 'https://a.tile.openstreetmap.de/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.yourapp',
                     ),
                     MarkerLayer(markers: [...interestMarkers, ...searchedMarker]),
