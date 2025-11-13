@@ -43,7 +43,7 @@
 | **Frontend (App)** | Kotlin (Android) / Flutter |
 | **Backend** | Spring Boot |
 | **Database** | MySQL |
-| **AI / API 연동** | Chat GPT, KAKAO API (자동 지명 추출), Google Maps API |
+| **AI / API 연동** | Chat GPT, KAKAO API (자동 지명 추출), Google Maps API, AWS S3 |
 | **개발 도구** | IntelliJ IDEA, Android Studio, VSC |
 | **버전 관리** | Git, GitHub |
 
